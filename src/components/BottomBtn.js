@@ -4,7 +4,7 @@ import PropTypes from 'prop-types';
 
 const BottomBtn = ({ text, color, icon, btnClick }) => {
     return (
-        <button type='button' className={`btn no-border ${color}`} onClick={() => { btnClick() }}>
+        <button type='button' className={`btn rounded-0 ${color}`} onClick={() => { btnClick() }}>
             <FontAwesomeIcon icon={icon} />
             <span className='ms-2'>{text}</span>
         </button>
@@ -13,7 +13,7 @@ const BottomBtn = ({ text, color, icon, btnClick }) => {
 BottomBtn.propTypes = {
     text: PropTypes.string,
     color: PropTypes.string,
-    icon: PropTypes.element.isRequired,
+    icon: PropTypes.object.isRequired,
     btnClick: PropTypes.func
 }
 BottomBtn.defaultProps = {

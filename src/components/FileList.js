@@ -1,4 +1,4 @@
-import React, { useState, useEffect,useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faEdit, faTrash, faTimes } from '@fortawesome/free-solid-svg-icons'
 import { faBookmark } from '@fortawesome/free-regular-svg-icons'
@@ -13,25 +13,36 @@ const FileList = ({ files, onFileClick, onSaveEdit, onFileDelete }) => {
     const editRef = useRef(null)
 
     useEffect(() => {
-        if (enterPress && editStatus) {
-            const editItem = files.find(file => { return file.id === editStatus })
+        const editItem = files.find(file => { return file.id === editStatus })
+        if (enterPress && editStatus && (value.trim() !== '')) {
             onSaveEdit(editItem.id, value)
             setEditStatus(false)
             setValue('')
         }
         if (escPress && editStatus) {
-            closeEdit()
+            closeEdit(editItem)
         }
     })
 
     useEffect(() => {
         if (editStatus)
-        editRef.current.focus()
+            editRef.current.focus()
     }, [editStatus])
 
-    const closeEdit = () => {
+    useEffect(() => {
+        const newFile = files.find(file => { return file.isNew })
+        if (newFile) {
+            setEditStatus(newFile.id)
+            setValue(newFile.title)
+        }
+    }, [files])
+
+    const closeEdit = (editItem) => {
         setEditStatus(0)
         setValue('')
+        if (editItem.isNew) {
+            onFileDelete(editItem.id)
+        }
     }
 
     return (
@@ -41,7 +52,7 @@ const FileList = ({ files, onFileClick, onSaveEdit, onFileDelete }) => {
                     files.map(file => {
                         return <li className='list-group-item bg-light d-flex align-items-center row file-item g-0' key={file.id}>
                             {
-                                (file.id !== editStatus) &&
+                                (file.id !== editStatus && !file.isNew) &&
                                 <>
                                     <span className='col-2'> <FontAwesomeIcon icon={faBookmark} /></span>
                                     <span className='col-8 c-link' onClick={() => { onFileClick(file.id) }}>{file.title}</span>
@@ -54,11 +65,11 @@ const FileList = ({ files, onFileClick, onSaveEdit, onFileDelete }) => {
                                 </>
                             }
                             {
-                                (file.id === editStatus) &&
+                                ((file.id === editStatus) || file.isNew) &&
                                 <>
                                     <div className="d-flex justify-content-between align-items-center">
-                                        <input ref={editRef} className="form-control" style={{ height: '30px' }} value={value} onChange={(e) => { setValue(e.target.value) }} />
-                                        <button type="button" className="icon-btn" onClick={closeEdit}>
+                                        <input ref={editRef} className="form-control" placeholder='请输入名称' style={{ height: '30px' }} value={value} onChange={(e) => { setValue(e.target.value) }} />
+                                        <button type="button" className="icon-btn" onClick={() => { closeEdit(file) }}>
                                             <FontAwesomeIcon title='关闭' icon={faTimes} />
                                         </button>
                                     </div>
