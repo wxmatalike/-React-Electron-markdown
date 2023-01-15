@@ -1,7 +1,10 @@
 const { app, BrowserWindow, ipcMain } = require('electron')
 const isDev = require('electron-is-dev')
+const { initialize, enable } = require('@electron/remote/main')
+const ElectronStore = require('electron-store');
+ElectronStore.initRenderer();
 
-app.disableHardwareAcceleration()
+// app.disableHardwareAcceleration()
 const createWindow = () => {
   const win = new BrowserWindow({
     width: 1024,
@@ -12,14 +15,11 @@ const createWindow = () => {
       enableRemoteModule: true
     }
   })
-  require('@electron/remote/main').initialize()
-  require("@electron/remote/main").enable(win.webContents)
+  initialize()
+  enable(win.webContents);
 
-  // win.webContents.openDevTools()
-
-  const urlLocation = isDev ?'http://localhost:3000':'https'
+  const urlLocation = isDev ? 'http://localhost:3000' : 'https'
   win.loadURL(urlLocation)
-
 }
 app.whenReady().then(() => {
   createWindow()

@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import './App.css';
-import { faPlus, faFileImport } from '@fortawesome/free-solid-svg-icons'
+import { faPlus, faFileImport, faSave } from '@fortawesome/free-solid-svg-icons'
 import 'bootstrap/dist/css/bootstrap.min.css'
 import FileSeach from './components/FileSearch';
-import defaultFiles from './utils/defaultFiles';
+// import defaultFiles from './utils/defaultFiles';
 import FileList from './components/FileList';
 import BottomBtn from './components/BottomBtn';
 import TabList from './components/TabList';
@@ -16,10 +16,22 @@ import "easymde/dist/easymde.min.css";
 import fileHelper from './utils/fileHelper';
 const { join } = window.require('path')
 const remote = window.require('@electron/remote')
+//数据持久化
+const Store = window.require('electron-store')
+const fileStore = new Store({ 'name': 'FilesData' })
+
+const saveFilesToStore = (files) => {
+  const filesStoreObj = mapToArr(files).reduce((res, file) => {
+    const { id, path, title, createdAt } = file
+    res[id] = { id, path, title, createdAt }
+    return res
+  }, {})
+  fileStore.set('files', filesStoreObj)
+}
 
 function App() {
-  const [files, setFiles] = useState(flattenArr(defaultFiles))
-  const [activeFileId, setActiveFileId] = useState('') //当前文件
+  const [files, setFiles] = useState(fileStore.get('files') || {})
+  const [activeFileId, setActiveFileId] = useState(-1) //当前文件
   const [openFileIDs, setOpenFileIDs] = useState([]) //打开的文件列表
   const [unsaveFileIDs, setUnsaveFileIDs] = useState([]) //未保存的文件列表
   const [searchFiles, setSearchFiles] = useState([])
@@ -31,12 +43,18 @@ function App() {
   })
   const activedFile = files[activeFileId]
   //文件存储位置
-  // console.log(remote);
   const savedLocation = remote.app.getPath('documents')
 
   //点击左侧导航栏中的file
   const fileClick = (fileId) => {
     setActiveFileId(fileId)
+    const currentFile = files[fileId]
+    if (!currentFile.inLoaded) {
+      fileHelper.readFile(currentFile.path).then((val) => {
+        const newFile = { ...files[fileId], body: val, isLoaded: true }
+        setFiles({ ...files, [fileId]: newFile })
+      })
+    }
     if (!openFileIDs.includes(fileId))
       setOpenFileIDs([...openFileIDs, fileId])
   }
@@ -71,19 +89,38 @@ function App() {
   }
   //删除
   const deleteFile = (fileId) => {
-    delete files[fileId]
-    tabClose(fileId)
-    setFiles({ ...files })
+    if (files[fileId].isNew) {
+      const { [fileId]: value, ...afterDelete } = files
+      setFiles(afterDelete)
+      // delete files[fileId]
+      // setFiles({ ...files })
+    } else {
+      fileHelper.deleteFile(files[fileId].path).then(() => {
+        // delete files[fileId]
+        // setFiles({ ...files })
+        const { [fileId]: value, ...afterDelete } = files
+        setFiles(afterDelete)
+        saveFilesToStore(files)
+        tabClose(fileId)
+      })
+    }
   }
   //编辑标题
   const updateFileName = (id, newValue, isNew) => {
-    const modifiedFile = { ...files[id], title: newValue, isNew: false }
+    const newPath = join(savedLocation, `${newValue}.md`)
+    const modifiedFile = { ...files[id], title: newValue, isNew: false, path: newPath }
+    const newFile = { ...files, [id]: modifiedFile }
     if (isNew) {
-      fileHelper.writeFile(join(savedLocation,`${newValue}.md`),files[id].body).then(()=>{
-        setFiles({ ...files, [id]: modifiedFile })
+      fileHelper.writeFile(newPath, files[id].body).then(() => {
+        setFiles(newFile)
+        saveFilesToStore(newFile)
       })
     } else {
-
+      const oldPath = join(savedLocation, `${files[id].title}.md`)
+      fileHelper.renameFile(oldPath, newPath).then(() => {
+        setFiles(newFile)
+        saveFilesToStore(newFile)
+      })
     }
 
   }
@@ -106,6 +143,12 @@ function App() {
     }
     setFiles({ ...files, [newId]: f })
   }
+  const saveCurrentFile = () => {
+    fileHelper.writeFile(join(savedLocation, `${activedFile.title}.md`), activedFile.body).then(() => {
+      setUnsaveFileIDs(unsaveFileIDs.filter(id => id !== activedFile.id))
+    })
+  }
+
   return (
     <div className="App container-fluid p-0">
       <div className='row g-0'>
@@ -133,8 +176,9 @@ function App() {
               <TabList files={opendFiles} onTabClick={tabClick}
                 activeId={activeFileId} onCloseTab={tabClose}
                 unsaveIds={unsaveFileIDs} />
-              <SimpleMDE value={activedFile && activedFile.body} onBlur={e => { e.target.focus() }} options={{
-                minHeight: '430px',
+              <SimpleMDE value={activedFile && activedFile.body} options={{
+                minHeight: '440px',
+                // autofocus: true,
                 previewRender: (plainText, preview) => {
                   setTimeout(() => {
                     preview.innerHTML = marked.parse(plainText);
@@ -142,6 +186,7 @@ function App() {
                   return "Loading...";
                 }
               }} onChange={(val) => { fileChange(activedFile.id, val) }} />
+              <BottomBtn text='保存' color='btn-success' icon={faSave} btnClick={saveCurrentFile} />
             </>
           }
         </div>
