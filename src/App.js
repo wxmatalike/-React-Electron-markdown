@@ -12,6 +12,10 @@ import { flattenArr, mapToArr } from './utils/helper'
 //md编辑器
 import SimpleMDE from "react-simplemde-editor";
 import "easymde/dist/easymde.min.css";
+//node.js处理文件
+import fileHelper from './utils/fileHelper';
+const { join } = window.require('path')
+const remote = window.require('@electron/remote')
 
 function App() {
   const [files, setFiles] = useState(flattenArr(defaultFiles))
@@ -26,6 +30,9 @@ function App() {
     return files[openID]
   })
   const activedFile = files[activeFileId]
+  //文件存储位置
+  // console.log(remote);
+  const savedLocation = remote.app.getPath('documents')
 
   //点击左侧导航栏中的file
   const fileClick = (fileId) => {
@@ -69,9 +76,16 @@ function App() {
     setFiles({ ...files })
   }
   //编辑标题
-  const updateFileName = (id, newValue) => {
+  const updateFileName = (id, newValue, isNew) => {
     const modifiedFile = { ...files[id], title: newValue, isNew: false }
-    setFiles({ ...files, [id]: modifiedFile })
+    if (isNew) {
+      fileHelper.writeFile(join(savedLocation,`${newValue}.md`),files[id].body).then(()=>{
+        setFiles({ ...files, [id]: modifiedFile })
+      })
+    } else {
+
+    }
+
   }
   //搜索file
   const fileSearch = (keyWord) => {
