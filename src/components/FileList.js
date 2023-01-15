@@ -11,7 +11,7 @@ const FileList = ({ files, onFileClick, onSaveEdit, onFileDelete }) => {
     const enterPress = useKeyPress(13)
     const escPress = useKeyPress(27)
     const editRef = useRef(null)
-
+    // eslint-disable-next-line
     useEffect(() => {
         const editItem = files.find(file => { return file.id === editStatus })
         if (enterPress && editStatus && (value.trim() !== '')) {

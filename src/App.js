@@ -20,15 +20,13 @@ function App() {
   const [unsaveFileIDs, setUnsaveFileIDs] = useState([]) //未保存的文件列表
   const [searchFiles, setSearchFiles] = useState([])
   //转回数组
-  const filesArr=mapToArr(files)
-
-  const useSearchFiles = searchFiles.length === 0 ? false : true
-
+  const filesArr = mapToArr(files)
+  const useSearchFilesArr = searchFiles.length === 0 ? filesArr : searchFiles
   const opendFiles = openFileIDs.map(openID => {
     return files[openID]
   })
-
   const activedFile = files[activeFileId]
+
   //点击左侧导航栏中的file
   const fileClick = (fileId) => {
     setActiveFileId(fileId)
@@ -58,14 +56,8 @@ function App() {
   }
   //编辑文档
   const fileChange = (id, value) => {
-    const newFile = files.map(file => {
-      if (file.id === id) {
-        file.body = value
-      }
-      return file
-    })
-    setFiles(newFile)
-
+    const newFile = { ...files[id], body: value }
+    setFiles({ ...files, [id]: newFile })
     if (!unsaveFileIDs.includes(id)) {
       setUnsaveFileIDs([...unsaveFileIDs, id])
     }
@@ -74,45 +66,38 @@ function App() {
   const deleteFile = (fileId) => {
     delete files[fileId]
     tabClose(fileId)
-    console.log(fileId,files);
-    setFiles(files)
+    setFiles({ ...files })
   }
   //编辑标题
   const updateFileName = (id, newValue) => {
-    const newFiles = files.map(file => {
-      if (file.id === id) {
-        file.title = newValue
-        file.isNew = false
-      }
-      return file
-    })
-    setFiles(newFiles)
+    const modifiedFile = { ...files[id], title: newValue, isNew: false }
+    setFiles({ ...files, [id]: modifiedFile })
   }
   //搜索file
   const fileSearch = (keyWord) => {
-    const newFiles = files.filter(file => {
+    const newFiles = filesArr.filter(file => {
       return file.title && file.title.includes(keyWord)
     })
     setSearchFiles(newFiles)
   }
   //新建file
   const createNewFile = () => {
+    let newId = new Date().getTime() + 1
     let f = {
-      id: new Date().getTime() + 1,
+      id: newId,
       title: '',
       body: '## 请输入 Markdown',
       isNew: true,
       createdAt: new Date().getTime()
     }
-    const newFiles = [...files, f]
-    setFiles(newFiles)
+    setFiles({ ...files, [newId]: f })
   }
   return (
     <div className="App container-fluid p-0">
       <div className='row g-0'>
         <div className='col-3 bg-light left-panel p-0'>
           <FileSeach title='我的文档' onFileSearch={fileSearch} />
-          <FileList files={useSearchFiles ? searchFiles : filesArr} onFileClick={fileClick} onFileDelete={deleteFile}
+          <FileList files={useSearchFilesArr} onFileClick={fileClick} onFileDelete={deleteFile}
             onSaveEdit={updateFileName} />
           <div className='row g-0 btns-group'>
             <div className='col d-grid'>
@@ -134,7 +119,7 @@ function App() {
               <TabList files={opendFiles} onTabClick={tabClick}
                 activeId={activeFileId} onCloseTab={tabClose}
                 unsaveIds={unsaveFileIDs} />
-              <SimpleMDE value={activedFile && activedFile.body} key={activedFile.id} options={{
+              <SimpleMDE value={activedFile && activedFile.body} onBlur={e => { e.target.focus() }} options={{
                 minHeight: '430px',
                 previewRender: (plainText, preview) => {
                   setTimeout(() => {
