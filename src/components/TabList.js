@@ -33,7 +33,7 @@ const TabList = ({ files, activeId, unsaveIds, onTabClick, onCloseTab }) => {
 
 TabList.propTypes = {
     files: PropTypes.array,
-    activeId: PropTypes.number,
+    // activeId: PropTypes.string,
     unsaveIds: PropTypes.array,
     onTabClick: PropTypes.func,
     onCloseTab: PropTypes.func

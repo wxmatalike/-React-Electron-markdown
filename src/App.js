@@ -33,7 +33,7 @@ const saveFilesToStore = (files) => {
 
 function App() {
   const [files, setFiles] = useState(fileStore.get('files') || {})
-  const [activeFileId, setActiveFileId] = useState(-1) //当前文件
+  const [activeFileId, setActiveFileId] = useState(0) //当前文件
   const [openFileIDs, setOpenFileIDs] = useState([]) //打开的文件列表
   const [unsaveFileIDs, setUnsaveFileIDs] = useState([]) //未保存的文件列表
   const [searchFiles, setSearchFiles] = useState([])
@@ -51,7 +51,7 @@ function App() {
   const fileClick = (fileId) => {
     setActiveFileId(fileId)
     const currentFile = files[fileId]
-    if (!currentFile.inLoaded) {
+    if (!currentFile.isLoaded) {
       fileHelper.readFile(currentFile.path).then((val) => {
         const newFile = { ...files[fileId], body: val, isLoaded: true }
         setFiles({ ...files, [fileId]: newFile })
@@ -71,13 +71,13 @@ function App() {
     let newFiles = openFileIDs.filter(id => { return id !== fileId })
     setOpenFileIDs(newFiles)
     if (newFiles.length === 0) {
-      setActiveFileId(-1)
+      setActiveFileId(0)
     }
     else {
       if (newFiles.length - 1 >= fileIndex) {
-        setActiveFileId(newFiles[fileIndex])
+        setActiveFileId(newFiles[fileIndex].id)
       } else {
-        setActiveFileId(newFiles[newFiles.length - 1])
+        setActiveFileId(newFiles[newFiles.length - 1].id)
       }
     }
   }
@@ -106,7 +106,7 @@ function App() {
   //编辑标题
   const updateFileName = (id, newValue, isNew) => {
     //新建的文件才保存在savedLocation中
-    const newPath = isNew ? join(savedLocation, `${newValue}.md`) : join(dirname(files[id].path),`${newValue}.md`)
+    const newPath = isNew ? join(savedLocation, `${newValue}.md`) : join(dirname(files[id].path), `${newValue}.md`)
     const modifiedFile = { ...files[id], title: newValue, isNew: false, path: newPath }
     const newFile = { ...files, [id]: modifiedFile }
     if (isNew) {

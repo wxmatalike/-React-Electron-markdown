@@ -1,5 +1,5 @@
 const fs = window.require('fs').promises
-const path = window.require('path')
+// const path = window.require('path')
 
 const fileHelper = {
     readFile: (path) => {
@@ -17,17 +17,3 @@ const fileHelper = {
 }
 
 export default fileHelper
-
-// const testPath = path.join(__dirname, 'helper.js')
-// const testWritePath = path.join(__dirname, 'hello.md')
-// const testRenamePath = path.join(__dirname, 'hello1.md')
-
-// fileHelper.readFile(testPath).then((data)=>{
-//     console.log(data);
-// })
-// fileHelper.renameFile(testWritePath, testRenamePath).then(() => {
-//     console.log("更改成功");
-// })
-// fileHelper.deleteFile(testRenamePath).then(() => {
-//     console.log("删除成功");
-// })
