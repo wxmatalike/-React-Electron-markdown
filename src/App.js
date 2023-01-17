@@ -3,22 +3,24 @@ import './App.css';
 import { faPlus, faFileImport, faSave } from '@fortawesome/free-solid-svg-icons'
 import 'bootstrap/dist/css/bootstrap.min.css'
 import FileSeach from './components/FileSearch';
-// import defaultFiles from './utils/defaultFiles';
 import FileList from './components/FileList';
 import BottomBtn from './components/BottomBtn';
 import TabList from './components/TabList';
 import * as marked from 'marked'
 import { flattenArr, mapToArr } from './utils/helper'
+//uuid
+import { v4 as uuidv4 } from 'uuid';
 //md编辑器
 import SimpleMDE from "react-simplemde-editor";
 import "easymde/dist/easymde.min.css";
 //node.js处理文件
 import fileHelper from './utils/fileHelper';
-const { join } = window.require('path')
+const { join, basename, extname, dirname } = window.require('path')
 const remote = window.require('@electron/remote')
 //数据持久化
 const Store = window.require('electron-store')
 const fileStore = new Store({ 'name': 'FilesData' })
+
 
 const saveFilesToStore = (files) => {
   const filesStoreObj = mapToArr(files).reduce((res, file) => {
@@ -69,7 +71,7 @@ function App() {
     let newFiles = openFileIDs.filter(id => { return id !== fileId })
     setOpenFileIDs(newFiles)
     if (newFiles.length === 0) {
-      setActiveFileId('')
+      setActiveFileId(-1)
     }
     else {
       if (newFiles.length - 1 >= fileIndex) {
@@ -90,16 +92,12 @@ function App() {
   //删除
   const deleteFile = (fileId) => {
     if (files[fileId].isNew) {
-      const { [fileId]: value, ...afterDelete } = files
-      setFiles(afterDelete)
-      // delete files[fileId]
-      // setFiles({ ...files })
+      delete files[fileId]
+      setFiles({ ...files })
     } else {
       fileHelper.deleteFile(files[fileId].path).then(() => {
-        // delete files[fileId]
-        // setFiles({ ...files })
-        const { [fileId]: value, ...afterDelete } = files
-        setFiles(afterDelete)
+        delete files[fileId]
+        setFiles({ ...files })
         saveFilesToStore(files)
         tabClose(fileId)
       })
@@ -107,7 +105,8 @@ function App() {
   }
   //编辑标题
   const updateFileName = (id, newValue, isNew) => {
-    const newPath = join(savedLocation, `${newValue}.md`)
+    //新建的文件才保存在savedLocation中
+    const newPath = isNew ? join(savedLocation, `${newValue}.md`) : join(dirname(files[id].path),`${newValue}.md`)
     const modifiedFile = { ...files[id], title: newValue, isNew: false, path: newPath }
     const newFile = { ...files, [id]: modifiedFile }
     if (isNew) {
@@ -116,7 +115,7 @@ function App() {
         saveFilesToStore(newFile)
       })
     } else {
-      const oldPath = join(savedLocation, `${files[id].title}.md`)
+      const oldPath = files[id].path
       fileHelper.renameFile(oldPath, newPath).then(() => {
         setFiles(newFile)
         saveFilesToStore(newFile)
@@ -133,7 +132,7 @@ function App() {
   }
   //新建file
   const createNewFile = () => {
-    let newId = new Date().getTime() + 1
+    let newId = uuidv4()
     let f = {
       id: newId,
       title: '',
@@ -143,9 +142,51 @@ function App() {
     }
     setFiles({ ...files, [newId]: f })
   }
+  //保存
   const saveCurrentFile = () => {
-    fileHelper.writeFile(join(savedLocation, `${activedFile.title}.md`), activedFile.body).then(() => {
+    fileHelper.writeFile(activedFile.path, activedFile.body).then(() => {
       setUnsaveFileIDs(unsaveFileIDs.filter(id => id !== activedFile.id))
+    })
+  }
+  //导入文件
+  const importFiles = () => {
+    remote.dialog.showOpenDialog({
+      title: '选择导入的 Markdown 文件',
+      properties: ['openFile', 'multiSelections'],
+      filters: [
+        { name: 'Markdown files', extensions: ['md'] }
+      ]
+    }).then((res) => {
+      if (res.filePaths.length !== 0) {
+        const paths = res.filePaths
+        //遍历对比选择的文件中哪些是当前store中没有的
+        const filteredPaths = paths.filter(path => {
+          const needAdd = Object.values(files).find(file => {
+            return file.path === path
+          })
+          return !needAdd
+        })
+
+        const importFilesArr = filteredPaths.map(path => {
+          return {
+            id: uuidv4(),
+            path,
+            title: basename(path, extname(path))
+          }
+        })
+        console.log('importFilesArr', importFilesArr);
+        const newFiles = { ...files, ...flattenArr(importFilesArr) }
+        console.log('newFiles', newFiles);
+        setFiles(newFiles)
+        saveFilesToStore(newFiles)
+        if (importFilesArr.length > 0) {
+          remote.dialog.showMessageBox({
+            type: 'info',
+            title: `成功导入${importFilesArr.length}个文件`,
+            message: `成功导入${importFilesArr.length}个文件`
+          })
+        }
+      }
     })
   }
 
@@ -161,7 +202,7 @@ function App() {
               <BottomBtn text='新建' color='btn-primary' icon={faPlus} btnClick={createNewFile} />
             </div>
             <div className='col d-grid'>
-              <BottomBtn text='导入' color='btn-success' icon={faFileImport} />
+              <BottomBtn text='导入' color='btn-success' icon={faFileImport} btnClick={importFiles} />
             </div>
           </div>
         </div>
@@ -178,7 +219,7 @@ function App() {
                 unsaveIds={unsaveFileIDs} />
               <SimpleMDE value={activedFile && activedFile.body} options={{
                 minHeight: '440px',
-                // autofocus: true,
+                autofocus: true,
                 previewRender: (plainText, preview) => {
                   setTimeout(() => {
                     preview.innerHTML = marked.parse(plainText);
