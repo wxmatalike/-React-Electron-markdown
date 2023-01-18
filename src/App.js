@@ -22,6 +22,7 @@ const remote = window.require('@electron/remote')
 const Store = window.require('electron-store')
 const fileStore = new Store({ 'name': 'FilesData' })
 
+const settingsStore = new Store({ name: 'Settings' })
 
 const saveFilesToStore = (files) => {
   const filesStoreObj = mapToArr(files).reduce((res, file) => {
@@ -46,7 +47,7 @@ function App() {
   })
   const activedFile = files[activeFileId]
   //文件存储位置
-  const savedLocation = remote.app.getPath('documents')
+  const savedLocation = settingsStore.get('savedFileLocation') || remote.app.getPath('documents')
 
   //点击左侧导航栏中的file
   const fileClick = (fileId) => {

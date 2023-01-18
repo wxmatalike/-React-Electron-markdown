@@ -1,4 +1,4 @@
-const { app, shell } = require('electron')
+const { app, shell, ipcMain } = require('electron')
 
 const template = [
     {
@@ -114,6 +114,16 @@ if (process.platform === 'darwin') {
                 type: 'separator'
             },
             {
+                label: '设置',
+                accelerator: 'Ctrl+,',
+                click: () => {
+                    ipcMain.emit('open-setting-window')
+                }
+            },
+            {
+                type: 'separator'
+            },
+            {
                 label: '服务',
                 role: 'services',
                 submenu: []
@@ -158,12 +168,12 @@ if (process.platform === 'darwin') {
         );
     }
 }
-else{
+else {
     template[0].submenu.push({
         label: '设置',
         accelerator: 'Ctrl+,',
-        click: (menuItem, browserWindow, event) => {
-            browserWindow.webContents.send('create-file')
+        click: () => {
+            ipcMain.emit('open-setting-window')
         }
     })
 }

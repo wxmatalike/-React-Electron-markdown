@@ -4,25 +4,42 @@ const { initialize, enable } = require('@electron/remote/main')
 const ElectronStore = require('electron-store');
 ElectronStore.initRenderer();
 const menuTemplate = require('./src/menuTemplate')
+const AppWindow = require('./src/AppWindow')
+const path = require('path')
+let mainWindow, settingsWindow
 
 // app.disableHardwareAcceleration()
 const createWindow = () => {
-  const win = new BrowserWindow({
-    width: 1024,
-    height: 720,
-    webPreferences: {
-      nodeIntegration: true,
-      contextIsolation: false,
-      enableRemoteModule: true
-    }
-  })
-  initialize()
-  enable(win.webContents);
-
   const urlLocation = isDev ? 'http://localhost:3000' : 'https'
-  win.loadURL(urlLocation)
-  const menu =Menu.buildFromTemplate(menuTemplate)
+  const mainWindowConfig = {
+    width: 1024,
+    height: 768,
+  }
+  mainWindow = new AppWindow(mainWindowConfig, urlLocation)
+  mainWindow.on('closed', () => {
+    mainWindow = null
+  })
+
+  const menu = Menu.buildFromTemplate(menuTemplate)
   Menu.setApplicationMenu(menu)
+
+  ipcMain.on('open-setting-window', () => {
+    const settingWindowConfig = {
+      width: 500,
+      height: 400,
+      parent: mainWindow
+    }
+    const settingFileLocation = `file://${path.join(__dirname, './settings/settings.html')}`
+    settingsWindow = new AppWindow(settingWindowConfig, settingFileLocation)
+    settingsWindow.on('closed', () => {
+      settingsWindow = null
+    })
+    enable(settingsWindow.webContents);
+  })
+
+  initialize()
+  enable(mainWindow.webContents);
+  
 }
 app.whenReady().then(() => {
   createWindow()
