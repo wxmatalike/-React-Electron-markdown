@@ -8,37 +8,37 @@ const template = [
                 label: '新建',
                 accelerator: 'CmdOrCtrl+N',
                 click: (menuItem, browserWindow, event) => {
-                    browserWindow.webContents.send('create')
+                    browserWindow.webContents.send('create-file')
                 }
             },
             {
                 label: '保存',
                 accelerator: 'CmdOrCtrl+S',
                 click: (menuItem, browserWindow, event) => {
-                    browserWindow.webContents.send('save')
+                    browserWindow.webContents.send('save-file')
                 }
             },
             {
                 label: '搜索',
                 accelerator: 'CmdOrCtrl+F',
                 click: (menuItem, browserWindow, event) => {
-                    browserWindow.webContents.send('search')
+                    browserWindow.webContents.send('search-file')
                 }
             },
             {
                 label: '导入',
                 accelerator: 'CmdOrCtrl+O',
                 click: (menuItem, browserWindow, event) => {
-                    browserWindow.webContents.send('import')
+                    browserWindow.webContents.send('import-file')
                 }
             },
         ]
     },
     {
-        label: 'View',
+        label: '视图',
         submenu: [
             {
-                label: 'Reload',
+                label: '刷新',
                 accelerator: 'CmdOrCtrl+R',
                 click: function (item, focusedWindow) {
                     if (focusedWindow)
@@ -46,7 +46,7 @@ const template = [
                 }
             },
             {
-                label: 'Toggle Full Screen',
+                label: '全屏/窗口',
                 accelerator: (function () {
                     if (process.platform === 'darwin')
                         return 'Ctrl+Command+F';
@@ -59,7 +59,7 @@ const template = [
                 }
             },
             {
-                label: 'Toggle Developer Tools',
+                label: '开发者工具',
                 accelerator: (function () {
                     if (process.platform === 'darwin')
                         return 'Alt+Command+I';
@@ -74,27 +74,27 @@ const template = [
         ]
     },
     {
-        label: 'Window',
+        label: '窗口',
         role: 'window',
         submenu: [
             {
-                label: 'Minimize',
+                label: '最小化',
                 accelerator: 'CmdOrCtrl+M',
                 role: 'minimize'
             },
             {
-                label: 'Close',
+                label: '关闭',
                 accelerator: 'CmdOrCtrl+W',
                 role: 'close'
             },
         ]
     },
     {
-        label: 'Help',
+        label: '帮助',
         role: 'help',
         submenu: [
             {
-                label: 'Learn More',
+                label: '学习更多内容',
                 click: function () { shell.openExternal('http://electron.atom.io') }
             },
         ]
@@ -107,14 +107,14 @@ if (process.platform === 'darwin') {
         label: name,
         submenu: [
             {
-                label: 'About ' + name,
+                label: '关于 ' + name,
                 role: 'about'
             },
             {
                 type: 'separator'
             },
             {
-                label: 'Services',
+                label: '服务',
                 role: 'services',
                 submenu: []
             },
@@ -122,24 +122,24 @@ if (process.platform === 'darwin') {
                 type: 'separator'
             },
             {
-                label: 'Hide ' + name,
+                label: '隐藏 ' + name,
                 accelerator: 'Command+H',
                 role: 'hide'
             },
             {
-                label: 'Hide Others',
+                label: '隐藏其他',
                 accelerator: 'Command+Shift+H',
                 role: 'hideothers'
             },
             {
-                label: 'Show All',
+                label: '展示全部',
                 role: 'unhide'
             },
             {
                 type: 'separator'
             },
             {
-                label: 'Quit',
+                label: '退出',
                 accelerator: 'Command+Q',
                 click: function () { app.quit(); }
             },
@@ -152,11 +152,20 @@ if (process.platform === 'darwin') {
                 type: 'separator'
             },
             {
-                label: 'Bring All to Front',
+                label: '置于前面',
                 role: 'front'
             }
         );
     }
+}
+else{
+    template[0].submenu.push({
+        label: '设置',
+        accelerator: 'Ctrl+,',
+        click: (menuItem, browserWindow, event) => {
+            browserWindow.webContents.send('create-file')
+        }
+    })
 }
 
 module.exports = template

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import './App.css';
 import { faPlus, faFileImport, faSave } from '@fortawesome/free-solid-svg-icons'
 import 'bootstrap/dist/css/bootstrap.min.css'
@@ -8,6 +8,7 @@ import BottomBtn from './components/BottomBtn';
 import TabList from './components/TabList';
 import * as marked from 'marked'
 import { flattenArr, mapToArr } from './utils/helper'
+import useIpcRenderer from './hooks/useIpcRenderer'
 //uuid
 import { v4 as uuidv4 } from 'uuid';
 //md编辑器
@@ -55,6 +56,12 @@ function App() {
       fileHelper.readFile(currentFile.path).then((val) => {
         const newFile = { ...files[fileId], body: val, isLoaded: true }
         setFiles({ ...files, [fileId]: newFile })
+      }).catch(err => {
+        console.log(fileId, files);
+        delete files[fileId]
+        setFiles({ ...files })
+        saveFilesToStore(files)
+        tabClose(fileId)
       })
     }
     if (!openFileIDs.includes(fileId))
@@ -174,9 +181,7 @@ function App() {
             title: basename(path, extname(path))
           }
         })
-        console.log('importFilesArr', importFilesArr);
         const newFiles = { ...files, ...flattenArr(importFilesArr) }
-        console.log('newFiles', newFiles);
         setFiles(newFiles)
         saveFilesToStore(newFiles)
         if (importFilesArr.length > 0) {
@@ -189,6 +194,12 @@ function App() {
       }
     })
   }
+
+  useIpcRenderer({
+    'create-file': createNewFile,
+    'save-file': saveCurrentFile,
+    'import-file': importFiles
+  })
 
   return (
     <div className="App container-fluid p-0">
@@ -219,6 +230,7 @@ function App() {
                 unsaveIds={unsaveFileIDs} />
               <SimpleMDE value={activedFile && activedFile.body} options={{
                 minHeight: '440px',
+                maxHeight: '440px',
                 autofocus: true,
                 previewRender: (plainText, preview) => {
                   setTimeout(() => {
@@ -227,7 +239,6 @@ function App() {
                   return "Loading...";
                 }
               }} onChange={(val) => { fileChange(activedFile.id, val) }} />
-              <BottomBtn text='保存' color='btn-success' icon={faSave} btnClick={saveCurrentFile} />
             </>
           }
         </div>

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faEdit, faTrash, faTimes } from '@fortawesome/free-solid-svg-icons'
+import { faTimes } from '@fortawesome/free-solid-svg-icons'
 import { faBookmark } from '@fortawesome/free-regular-svg-icons'
 import PropTypes from 'prop-types';
 import useKeyPress from "../hooks/useKeyPress";
@@ -50,12 +50,18 @@ const FileList = ({ files, onFileClick, onSaveEdit, onFileDelete }) => {
     }, {
         label: '重命名',
         click: () => {
-            console.log('rename');
+            const parentElement = getParentNode(clickItem.current, 'file-item')
+            if (parentElement) {
+                setEditStatus(parentElement.dataset.id); setValue(parentElement.dataset.title)
+            }
         }
     }, {
         label: '删除',
         click: () => {
-            console.log('del');
+            const parentElement = getParentNode(clickItem.current, 'file-item')
+            if (parentElement) {
+                onFileDelete(parentElement.dataset.id)
+            }
         }
     }], '.file-list', [files])
 
@@ -64,6 +70,15 @@ const FileList = ({ files, onFileClick, onSaveEdit, onFileDelete }) => {
         setValue('')
         if (editItem.isNew) {
             onFileDelete(editItem.id)
+        }
+    }
+
+    const BlurInput = (file) => {
+        if (value !== '') {
+            closeEdit(file)
+        }
+        else if (file.isNew) {
+            closeEdit(file)
         }
     }
 
@@ -78,20 +93,16 @@ const FileList = ({ files, onFileClick, onSaveEdit, onFileDelete }) => {
                                 (file.id !== editStatus && !file.isNew) &&
                                 <>
                                     <span className='col-2'> <FontAwesomeIcon icon={faBookmark} /></span>
-                                    <span className='col-6 c-link' onClick={() => { onFileClick(file.id) }}>{file.title}</span>
-                                    <button type="button" className="icon-btn col-2" onClick={() => { setEditStatus(file.id); setValue(file.title) }}>
-                                        <FontAwesomeIcon title='编辑' icon={faEdit} />
-                                    </button>
-                                    <button type="button" className="icon-btn col-2" onClick={() => { onFileDelete(file.id) }}>
-                                        <FontAwesomeIcon title='删除' icon={faTrash} />
-                                    </button>
+                                    <span className='col-10 c-link' onClick={() => { onFileClick(file.id) }}>{file.title}</span>
                                 </>
                             }
                             {
                                 ((file.id === editStatus) || file.isNew) &&
                                 <>
                                     <div className="d-flex justify-content-between align-items-center">
-                                        <input ref={editRef} className="form-control" placeholder='请输入名称' style={{ height: '30px' }} value={value} onChange={(e) => { setValue(e.target.value) }} />
+                                        <input ref={editRef} className="form-control" placeholder='请输入名称' style={{ height: '30px' }}
+                                            value={value} onChange={(e) => { setValue(e.target.value) }}
+                                            onBlur={() => { BlurInput(file) }} />
                                         <button type="button" className="icon-btn" onClick={() => { closeEdit(file) }}>
                                             <FontAwesomeIcon title='关闭' icon={faTimes} />
                                         </button>
