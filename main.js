@@ -20,8 +20,10 @@ const createWindow = () => {
     mainWindow = null
   })
 
+  enable(mainWindow.webContents);
   const menu = Menu.buildFromTemplate(menuTemplate)
   Menu.setApplicationMenu(menu)
+
 
   ipcMain.on('open-setting-window', () => {
     const settingWindowConfig = {
@@ -31,6 +33,7 @@ const createWindow = () => {
     }
     const settingFileLocation = `file://${path.join(__dirname, './settings/settings.html')}`
     settingsWindow = new AppWindow(settingWindowConfig, settingFileLocation)
+    settingsWindow.menuBarVisible = false
     settingsWindow.on('closed', () => {
       settingsWindow = null
     })
@@ -38,8 +41,6 @@ const createWindow = () => {
   })
 
   initialize()
-  enable(mainWindow.webContents);
-  
 }
 app.whenReady().then(() => {
   createWindow()

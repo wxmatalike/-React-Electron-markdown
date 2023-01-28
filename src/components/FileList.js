@@ -84,7 +84,7 @@ const FileList = ({ files, onFileClick, onSaveEdit, onFileDelete }) => {
 
     return (
         <>
-            <ul className='list-group list-group-flush file-list'>
+            <ul className='list-group list-group-flush file-list pb-5'>
                 {
                     files.map(file => {
                         return <li className='list-group-item bg-light d-flex align-items-center row file-item g-0' key={file.id}

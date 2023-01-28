@@ -83,9 +83,9 @@ function App() {
     }
     else {
       if (newFiles.length - 1 >= fileIndex) {
-        setActiveFileId(newFiles[fileIndex].id)
+        setActiveFileId(newFiles[fileIndex])
       } else {
-        setActiveFileId(newFiles[newFiles.length - 1].id)
+        setActiveFileId(newFiles[newFiles.length - 1])
       }
     }
   }

@@ -35,6 +35,38 @@ const template = [
         ]
     },
     {
+        label: '云同步',
+        submenu: [
+            {
+                label: '设置',
+                accelerator: 'Ctrl+,',
+                click: () => {
+                    ipcMain.emit('open-setting-window')
+                }
+            },
+            {
+                label: '自动同步',
+                type: 'checkbox',
+                enabled: false,
+                checked: false,
+                click: () => {
+                }
+            },
+            {
+                label: '全部同步至云端',
+                enabled: false,
+                click: () => {
+                }
+            },
+            {
+                label: '从云端下载至本地',
+                enabled: false,
+                click: () => {
+                }
+            },
+        ]
+    },
+    {
         label: '视图',
         submenu: [
             {
@@ -88,17 +120,7 @@ const template = [
                 role: 'close'
             },
         ]
-    },
-    {
-        label: '帮助',
-        role: 'help',
-        submenu: [
-            {
-                label: '学习更多内容',
-                click: function () { shell.openExternal('http://electron.atom.io') }
-            },
-        ]
-    },
+    }
 ];
 
 if (process.platform === 'darwin') {
@@ -167,15 +189,6 @@ if (process.platform === 'darwin') {
             }
         );
     }
-}
-else {
-    template[0].submenu.push({
-        label: '设置',
-        accelerator: 'Ctrl+,',
-        click: () => {
-            ipcMain.emit('open-setting-window')
-        }
-    })
 }
 
 module.exports = template
