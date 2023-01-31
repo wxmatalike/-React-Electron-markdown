@@ -1,5 +1,12 @@
-const { app, shell, ipcMain } = require('electron')
+const { app, ipcMain } = require('electron')
+const Store = require('electron-store')
+const settingsStore = new Store({ name: 'Settings' })
 
+const qiniuIsConfig = ['accessKey', 'secretKey', 'bucketName'].every(key => {
+    return !!settingsStore.get(key)
+})
+//是否自动同步
+let enableAutoSync = settingsStore.get('enableAutoSync')
 const template = [
     {
         label: '文件',
@@ -35,6 +42,38 @@ const template = [
         ]
     },
     {
+        label: '编辑',
+        submenu: [
+            {
+                label: '撤销',
+                accelerator: 'CmdOrCtrl+Z',
+                role: 'undo'
+            }, {
+                label: '重做',
+                accelerator: 'Shift+CmdOrCtrl+Z',
+                role: 'redo'
+            }, {
+                type: 'separator'
+            }, {
+                label: '剪切',
+                accelerator: 'CmdOrCtrl+X',
+                role: 'cut'
+            }, {
+                label: '复制',
+                accelerator: 'CmdOrCtrl+C',
+                role: 'copy'
+            }, {
+                label: '粘贴',
+                accelerator: 'CmdOrCtrl+V',
+                role: 'paste'
+            }, {
+                label: '全选',
+                accelerator: 'CmdOrCtrl+A',
+                role: 'selectall'
+            }
+        ]
+    },
+    {
         label: '云同步',
         submenu: [
             {
@@ -47,20 +86,21 @@ const template = [
             {
                 label: '自动同步',
                 type: 'checkbox',
-                enabled: false,
-                checked: false,
+                enabled: qiniuIsConfig,
+                checked: enableAutoSync,
                 click: () => {
+                    settingsStore.set('enableAutoSync', !enableAutoSync)
                 }
             },
             {
                 label: '全部同步至云端',
-                enabled: false,
+                enabled: qiniuIsConfig,
                 click: () => {
                 }
             },
             {
                 label: '从云端下载至本地',
-                enabled: false,
+                enabled: qiniuIsConfig,
                 click: () => {
                 }
             },

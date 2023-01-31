@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import './App.css';
-import { faPlus, faFileImport, faSave } from '@fortawesome/free-solid-svg-icons'
+import { faPlus, faFileImport } from '@fortawesome/free-solid-svg-icons'
 import 'bootstrap/dist/css/bootstrap.min.css'
 import FileSeach from './components/FileSearch';
 import FileList from './components/FileList';
@@ -9,7 +9,6 @@ import TabList from './components/TabList';
 import * as marked from 'marked'
 import { flattenArr, mapToArr } from './utils/helper'
 import useIpcRenderer from './hooks/useIpcRenderer'
-//uuid
 import { v4 as uuidv4 } from 'uuid';
 //md编辑器
 import SimpleMDE from "react-simplemde-editor";
@@ -18,19 +17,25 @@ import "easymde/dist/easymde.min.css";
 import fileHelper from './utils/fileHelper';
 const { join, basename, extname, dirname } = window.require('path')
 const remote = window.require('@electron/remote')
+const { ipcRenderer } = window.require('electron')
 //数据持久化
 const Store = window.require('electron-store')
 const fileStore = new Store({ 'name': 'FilesData' })
-
 const settingsStore = new Store({ name: 'Settings' })
 
 const saveFilesToStore = (files) => {
   const filesStoreObj = mapToArr(files).reduce((res, file) => {
-    const { id, path, title, createdAt } = file
-    res[id] = { id, path, title, createdAt }
+    const { id, path, title, createdAt, isSynced, updatedAt } = file
+    res[id] = { id, path, title, createdAt, isSynced, updatedAt }
     return res
   }, {})
   fileStore.set('files', filesStoreObj)
+}
+
+const getAutoSync = () => {
+  return ['accessKey', 'secretKey', 'bucketName', 'enableAutoSync'].every(key => {
+    return !!settingsStore.get(key)
+  })
 }
 
 function App() {
@@ -48,6 +53,7 @@ function App() {
   const activedFile = files[activeFileId]
   //文件存储位置
   const savedLocation = settingsStore.get('savedFileLocation') || remote.app.getPath('documents')
+  console.log(savedLocation);
 
   //点击左侧导航栏中的file
   const fileClick = (fileId) => {
@@ -152,8 +158,13 @@ function App() {
   }
   //保存
   const saveCurrentFile = () => {
-    fileHelper.writeFile(activedFile.path, activedFile.body).then(() => {
+    const { path, body, title } = activedFile
+    fileHelper.writeFile(path, body).then(() => {
       setUnsaveFileIDs(unsaveFileIDs.filter(id => id !== activedFile.id))
+      if (getAutoSync()) {
+        console.log('in if');
+        ipcRenderer.send('upload-file', { key: `${title}.md`, path })
+      }
     })
   }
   //导入文件
@@ -195,11 +206,19 @@ function App() {
       }
     })
   }
+  const activeFileUploaded = () => {
+    const { id } = activedFile
+    const modifiedFile = { ...files[id], isSynced: true, updatedAt: new Date().getTime() }
+    const newFiles = { ...files, [id]: modifiedFile }
+    setFiles(newFiles)
+    saveFilesToStore(newFiles)
+  }
 
   useIpcRenderer({
     'create-file': createNewFile,
     'save-file': saveCurrentFile,
-    'import-file': importFiles
+    'import-file': importFiles,
+    'active-file-uploaded': activeFileUploaded
   })
 
   return (
@@ -230,8 +249,8 @@ function App() {
                 activeId={activeFileId} onCloseTab={tabClose}
                 unsaveIds={unsaveFileIDs} />
               <SimpleMDE value={activedFile && activedFile.body} options={{
-                minHeight: '440px',
-                maxHeight: '440px',
+                minHeight: '400px',
+                maxHeight: '400px',
                 autofocus: true,
                 previewRender: (plainText, preview) => {
                   setTimeout(() => {

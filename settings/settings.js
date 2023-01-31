@@ -10,10 +10,6 @@ const $ = (selector) => {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-  // let savedLocation = settingsStore.get('savedFileLocation')
-  // if (savedLocation) {
-  //   $('#savedFileLocation').value = savedLocation
-  // }
   qiniuConfigArr.forEach(selector => {
     const savedValue = settingsStore.get(selector.substr(1))
     if (savedValue) {
@@ -41,8 +37,8 @@ document.addEventListener('DOMContentLoaded', () => {
         settingsStore.set(id, value ? value : '')
       }
     })
-    // sent a event back to main process to enable menu items if qiniu is configed
-    // ipcRenderer.send('config-is-saved')
+    // 通过ipc发送信息，触发electron更新
+    ipcRenderer.send('config-is-saved')
     remote.getCurrentWindow().close()
   })
   $('.nav-tabs').addEventListener('click', (e) => {
