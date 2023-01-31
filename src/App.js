@@ -6,8 +6,9 @@ import FileSeach from './components/FileSearch';
 import FileList from './components/FileList';
 import BottomBtn from './components/BottomBtn';
 import TabList from './components/TabList';
+import Loader from './components/Loader';
 import * as marked from 'marked'
-import { flattenArr, mapToArr } from './utils/helper'
+import { flattenArr, mapToArr, timestampToString } from './utils/helper'
 import useIpcRenderer from './hooks/useIpcRenderer'
 import { v4 as uuidv4 } from 'uuid';
 //md编辑器
@@ -20,7 +21,7 @@ const remote = window.require('@electron/remote')
 const { ipcRenderer } = window.require('electron')
 //数据持久化
 const Store = window.require('electron-store')
-const fileStore = new Store({ 'name': 'FilesData' })
+const fileStore = new Store({ name: 'FilesData' })
 const settingsStore = new Store({ name: 'Settings' })
 
 const saveFilesToStore = (files) => {
@@ -44,6 +45,7 @@ function App() {
   const [openFileIDs, setOpenFileIDs] = useState([]) //打开的文件列表
   const [unsaveFileIDs, setUnsaveFileIDs] = useState([]) //未保存的文件列表
   const [searchFiles, setSearchFiles] = useState([])
+  const [isLoading, setLoading] = useState(false)
   //转回数组
   const filesArr = mapToArr(files)
   const useSearchFilesArr = searchFiles.length === 0 ? filesArr : searchFiles
@@ -53,23 +55,26 @@ function App() {
   const activedFile = files[activeFileId]
   //文件存储位置
   const savedLocation = settingsStore.get('savedFileLocation') || remote.app.getPath('documents')
-  console.log(savedLocation);
 
   //点击左侧导航栏中的file
   const fileClick = (fileId) => {
     setActiveFileId(fileId)
     const currentFile = files[fileId]
-    if (!currentFile.isLoaded) {
-      fileHelper.readFile(currentFile.path).then((val) => {
-        const newFile = { ...files[fileId], body: val, isLoaded: true }
-        setFiles({ ...files, [fileId]: newFile })
-      }).catch(err => {
-        console.log(fileId, files);
-        delete files[fileId]
-        setFiles({ ...files })
-        saveFilesToStore(files)
-        tabClose(fileId)
-      })
+    const { id, title, path, isLoaded } = currentFile
+    if (!isLoaded) {
+      if (getAutoSync()) {
+        ipcRenderer.send('download-file', { key: `${title}.md`, path, id })
+      } else {
+        fileHelper.readFile(currentFile.path).then((val) => {
+          const newFile = { ...files[fileId], body: val, isLoaded: true }
+          setFiles({ ...files, [fileId]: newFile })
+        }).catch(err => {
+          delete files[fileId]
+          setFiles({ ...files })
+          saveFilesToStore(files)
+          tabClose(fileId)
+        })
+      }
     }
     if (!openFileIDs.includes(fileId))
       setOpenFileIDs([...openFileIDs, fileId])
@@ -122,17 +127,17 @@ function App() {
     //新建的文件才保存在savedLocation中
     const newPath = isNew ? join(savedLocation, `${newValue}.md`) : join(dirname(files[id].path), `${newValue}.md`)
     const modifiedFile = { ...files[id], title: newValue, isNew: false, path: newPath }
-    const newFile = { ...files, [id]: modifiedFile }
+    const newFiles = { ...files, [id]: modifiedFile }
     if (isNew) {
       fileHelper.writeFile(newPath, files[id].body).then(() => {
-        setFiles(newFile)
-        saveFilesToStore(newFile)
+        setFiles(newFiles)
+        saveFilesToStore(newFiles)
       })
     } else {
       const oldPath = files[id].path
       fileHelper.renameFile(oldPath, newPath).then(() => {
-        setFiles(newFile)
-        saveFilesToStore(newFile)
+        setFiles(newFiles)
+        saveFilesToStore(newFiles)
       })
     }
 
@@ -162,7 +167,6 @@ function App() {
     fileHelper.writeFile(path, body).then(() => {
       setUnsaveFileIDs(unsaveFileIDs.filter(id => id !== activedFile.id))
       if (getAutoSync()) {
-        console.log('in if');
         ipcRenderer.send('upload-file', { key: `${title}.md`, path })
       }
     })
@@ -206,10 +210,41 @@ function App() {
       }
     })
   }
+  //文件上传至云
   const activeFileUploaded = () => {
     const { id } = activedFile
     const modifiedFile = { ...files[id], isSynced: true, updatedAt: new Date().getTime() }
     const newFiles = { ...files, [id]: modifiedFile }
+    setFiles(newFiles)
+    saveFilesToStore(newFiles)
+  }
+  //文件从云下载
+  const activeFileDownLoaded = (event, message) => {
+    const currentFile = files[message.id]
+    const { id, path } = currentFile
+    fileHelper.readFile(path).then(value => {
+      let newFile
+      if (message.status === 'download-success') {
+        newFile = { ...files[id], body: value, isLoaded: true, isSynced: true, updatedAt: new Date().getTime() }
+      } else {
+        newFile = { ...files[id], body: value, isLoaded: true }
+      }
+      const newFiles = { ...files, [id]: newFile }
+      setFiles(newFiles)
+      saveFilesToStore(newFiles)
+    })
+  }
+  //文件全部上传至云端后
+  const filesUploaded = () => {
+    const newFiles = mapToArr(files).reduce((res, file) => {
+      const currentTime = new Date().gettime()
+      res[file.id] = {
+        ...files[file.id],
+        isSynced: true,
+        updatedAt: currentTime
+      }
+      return res
+    }, {})
     setFiles(newFiles)
     saveFilesToStore(newFiles)
   }
@@ -218,11 +253,17 @@ function App() {
     'create-file': createNewFile,
     'save-file': saveCurrentFile,
     'import-file': importFiles,
-    'active-file-uploaded': activeFileUploaded
+    'active-file-uploaded': activeFileUploaded,
+    'file-download': activeFileDownLoaded,
+    'loading-status': (message, status) => {
+      setLoading(status)
+    },
+    'files-uploaded-success': filesUploaded
   })
 
   return (
     <div className="App container-fluid p-0">
+      {isLoading && <Loader />}
       <div className='row g-0'>
         <div className='col-3 bg-light left-panel p-0'>
           <FileSeach title='我的文档' onFileSearch={fileSearch} />
@@ -249,8 +290,7 @@ function App() {
                 activeId={activeFileId} onCloseTab={tabClose}
                 unsaveIds={unsaveFileIDs} />
               <SimpleMDE value={activedFile && activedFile.body} options={{
-                minHeight: '400px',
-                maxHeight: '400px',
+                minHeight: '328px',
                 autofocus: true,
                 previewRender: (plainText, preview) => {
                   setTimeout(() => {
@@ -259,6 +299,10 @@ function App() {
                   return "Loading...";
                 }
               }} onChange={(val) => { fileChange(activedFile.id, val) }} />
+              {
+                activedFile.isSynced &&
+                <span className='sync-status'>已同步，上次同步时间:{timestampToString(activedFile.updatedAt)}</span>
+              }
             </>
           }
         </div>

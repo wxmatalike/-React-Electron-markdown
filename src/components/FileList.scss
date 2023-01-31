@@ -1,0 +1,31 @@
+.file-list-item{
+    position: relative;
+    .exist{
+        position: absolute;
+        bottom: -16px;
+        left: 4px;
+        font-size: 14px;
+        color: red;
+        line-height: 16px;
+        animation: move .2s ease-in-out;
+        z-index: 2;
+    }
+}
+
+@keyframes move {
+    0%{
+        transform: translateX(0);
+    }
+    25%{
+        transform: translateX(-4px);
+    }
+    50%{
+        transform: translateX(0);
+    }
+    75%{
+        transform: translateX(4px);
+    }
+    100%{
+        transform: translateX(0);
+    }
+}

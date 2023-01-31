@@ -96,6 +96,7 @@ const template = [
                 label: '全部同步至云端',
                 enabled: qiniuIsConfig,
                 click: () => {
+                    ipcMain.emit(('upload-all-to-qiniu'))
                 }
             },
             {

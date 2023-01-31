@@ -8,6 +8,7 @@ const AppWindow = require('./src/AppWindow')
 const path = require('path')
 const Store = require('electron-store')
 const settingsStore = new Store({ name: 'Settings' })
+const fileStore = new Store({ name: 'FilesData' })
 const QiniuManager = require('./src/utils/QiniuManager')
 
 const createManager = () => {
@@ -16,8 +17,6 @@ const createManager = () => {
   const bucket = settingsStore.get('bucketName')
   return new QiniuManager(accessKey, secretKey, bucket)
 }
-
-console.log(app.getPath('userData'));
 
 let mainWindow, settingsWindow
 
@@ -32,7 +31,6 @@ const createWindow = () => {
   mainWindow.on('closed', () => {
     mainWindow = null
   })
-
   enable(mainWindow.webContents);
   let menu = Menu.buildFromTemplate(menuTemplate)
   Menu.setApplicationMenu(menu)
@@ -76,6 +74,52 @@ const createWindow = () => {
       mainWindow.webContents.send('active-file-uploaded')
     }).catch(err => {
       dialog.showErrorBox('同步失败', '请检查参数是否正确')
+    })
+  })
+
+  ipcMain.on('download-file', (event, data) => {
+    const manager = createManager()
+    const filesObj = fileStore.get('files')
+    const { key, path, id } = data
+    manager.getStat(key).then(res => {
+      const serverUpdatedTime = Math.round(res.putTime / 10000)
+      const localUpdatedTime = filesObj[id].updatedAt
+      if (serverUpdatedTime > localUpdatedTime || !localUpdatedTime) {
+        console.log('new file');
+        manager.downloadFile(key, path).then(() => {
+          mainWindow.webContents.send('file-download', { status: 'download-success', id })
+        })
+      } else {
+        console.log('old file');
+        mainWindow.webContents.send('file-download', { status: 'no-new-file', id })
+      }
+    }, err => {
+      if (err.statusCode === 612) {
+        mainWindow.webContents.send('file-download', { status: 'no-file', id })
+      }
+    })
+  })
+
+  ipcMain.on(('upload-all-to-qiniu'), () => {
+    mainWindow.webContents.send('loading-status', true)
+    const manager = createManager()
+    const filesObj = fileStore.get('files') || {}
+    const uploadPromiseArr = Object.keys(filesObj).map(key => {
+      const file = filesObj[key]
+      return manager.uploadFile(`${file.title}.md`, file.path)
+    })
+    Promise.all(uploadPromiseArr).then(res => {
+      console.log(res);
+      dialog.showMessageBox({
+        type: 'info',
+        title: `上传成功`,
+        message: `成功上传个${res.length}文件`
+      })
+      mainWindow.webContents.send('files-uploaded-success')
+    }).catch(err => {
+      dialog.showErrorBox('上传失败', '请检查SDK设置是否正确')
+    }).finally(() => {
+      mainWindow.webContents.send('loading-status', false)
     })
   })
 

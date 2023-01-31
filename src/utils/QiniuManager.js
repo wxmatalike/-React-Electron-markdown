@@ -44,7 +44,7 @@ class QiniuManager {
             }
         })
     }
-
+    //下载
     downloadFile(key, downloadPath) {
         //获取下载链接，向链接发送请求，用reable stream pipe
         return this.generateDownLink(key).then(link => {
@@ -67,7 +67,13 @@ class QiniuManager {
             return new Promise.reject({ err: err.response })
         })
     }
-
+    //
+    getStat(key) {
+        return new Promise((resolve, reject) => {
+            this.bucketManager.stat(this.bucket, key, this._handleCallback(resolve, reject))
+        })
+    }
+    //获取地址
     gerBucketDomain() {
         const reqURL = `http://uc.qiniuapi.com/v2/domains?tbl=${this.bucket}`
         const digest = qiniu.util.generateAccessToken(this.mac, reqURL)
@@ -77,7 +83,7 @@ class QiniuManager {
     }
 
     //返回值抽离处理
-    _handleCallback(resolve, reject) {
+    _handleCallback(resolve, reject) {  
         return (respErr, respBody, respInfo) => {
             if (respErr) {
                 throw respErr;

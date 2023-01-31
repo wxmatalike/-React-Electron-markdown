@@ -6,10 +6,12 @@ import PropTypes from 'prop-types';
 import useKeyPress from "../hooks/useKeyPress";
 import useContextMenu from '../hooks/useContextMenu';
 import { getParentNode } from '../utils/helper'
+import './FileList.scss'
 
 const FileList = ({ files, onFileClick, onSaveEdit, onFileDelete }) => {
     const [editStatus, setEditStatus] = useState(0)
     const [value, setValue] = useState('')
+    const [isExist, setExist] = useState(false)
     const enterPress = useKeyPress(13)
     const escPress = useKeyPress(27)
     const editRef = useRef(null)
@@ -17,9 +19,20 @@ const FileList = ({ files, onFileClick, onSaveEdit, onFileDelete }) => {
     useEffect(() => {
         const editItem = files.find(file => { return file.id === editStatus })
         if (enterPress && editStatus && (value.trim() !== '')) {
-            onSaveEdit(editItem.id, value, editItem.isNew)
-            setEditStatus(false)
-            setValue('')
+            const isExist = Object.values(files).some(val => {
+                return val.title === value && val.id !== editStatus
+            })
+            if (isExist) {
+                console.log('已存在');
+                setExist(true)
+                setTimeout(() => {
+                    setExist(false)
+                }, 2000);
+            } else {
+                onSaveEdit(editItem.id, value, editItem.isNew)
+                setEditStatus(0)
+                setValue('')
+            }
         }
         if (escPress && editStatus) {
             closeEdit(editItem)
@@ -72,12 +85,9 @@ const FileList = ({ files, onFileClick, onSaveEdit, onFileDelete }) => {
             onFileDelete(editItem.id)
         }
     }
-
+    //失焦且无值自动关闭
     const BlurInput = (file) => {
-        if (value !== '') {
-            closeEdit(file)
-        }
-        else if (file.isNew) {
+        if (value === '' && file.isNew) {
             closeEdit(file)
         }
     }
@@ -99,10 +109,11 @@ const FileList = ({ files, onFileClick, onSaveEdit, onFileDelete }) => {
                             {
                                 ((file.id === editStatus) || file.isNew) &&
                                 <>
-                                    <div className="d-flex justify-content-between align-items-center">
+                                    <div className="d-flex justify-content-between align-items-center file-list-item">
                                         <input ref={editRef} className="form-control" placeholder='请输入名称' style={{ height: '30px' }}
                                             value={value} onChange={(e) => { setValue(e.target.value) }}
                                             onBlur={() => { BlurInput(file) }} />
+                                        {isExist && <span className='exist'>名称已存在</span>}
                                         <button type="button" className="icon-btn" onClick={() => { closeEdit(file) }}>
                                             <FontAwesomeIcon title='关闭' icon={faTimes} />
                                         </button>
