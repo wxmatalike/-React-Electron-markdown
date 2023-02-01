@@ -1,31 +1,36 @@
-.file-list-item{
+.file-list {
+    height: 389px;
+    overflow: scroll;
+}
+
+.file-list-item {
     position: relative;
-    .exist{
+    .exist {
         position: absolute;
         bottom: -16px;
         left: 4px;
         font-size: 14px;
         color: red;
         line-height: 16px;
-        animation: move .2s ease-in-out;
+        animation: move 0.2s ease-in-out;
         z-index: 2;
     }
 }
 
 @keyframes move {
-    0%{
+    0% {
         transform: translateX(0);
     }
-    25%{
+    25% {
         transform: translateX(-4px);
     }
-    50%{
+    50% {
         transform: translateX(0);
     }
-    75%{
+    75% {
         transform: translateX(4px);
     }
-    100%{
+    100% {
         transform: translateX(0);
     }
 }

@@ -23,7 +23,6 @@ const FileList = ({ files, onFileClick, onSaveEdit, onFileDelete }) => {
                 return val.title === value && val.id !== editStatus
             })
             if (isExist) {
-                console.log('已存在');
                 setExist(true)
                 setTimeout(() => {
                     setExist(false)
@@ -94,7 +93,7 @@ const FileList = ({ files, onFileClick, onSaveEdit, onFileDelete }) => {
 
     return (
         <>
-            <ul className='list-group list-group-flush file-list pb-5'>
+            <ul className='list-group list-group-flush file-list'>
                 {
                     files.map(file => {
                         return <li className='list-group-item bg-light d-flex align-items-center row file-item g-0' key={file.id}

@@ -115,10 +115,14 @@ function App() {
       setFiles({ ...files })
     } else {
       fileHelper.deleteFile(files[fileId].path).then(() => {
+        if (getAutoSync() && files[fileId].isSynced) {
+          ipcRenderer.send('delete-file', { key: `${files[fileId].title}.md`, })
+        }
         delete files[fileId]
         setFiles({ ...files })
         saveFilesToStore(files)
         tabClose(fileId)
+
       })
     }
   }
@@ -126,6 +130,7 @@ function App() {
   const updateFileName = (id, newValue, isNew) => {
     //新建的文件才保存在savedLocation中
     const newPath = isNew ? join(savedLocation, `${newValue}.md`) : join(dirname(files[id].path), `${newValue}.md`)
+    const oldFile = { title: files[id].title, isSynced: files[id].isSynced }
     const modifiedFile = { ...files[id], title: newValue, isNew: false, path: newPath }
     const newFiles = { ...files, [id]: modifiedFile }
     if (isNew) {
@@ -138,8 +143,12 @@ function App() {
       fileHelper.renameFile(oldPath, newPath).then(() => {
         setFiles(newFiles)
         saveFilesToStore(newFiles)
+        if (getAutoSync() && oldFile.isSynced) {
+          ipcRenderer.send('rename-file', { key: `${oldFile.title}.md`, newKey: `${newValue}.md` })
+        }
       })
     }
+
 
   }
   //搜索file

@@ -34,7 +34,7 @@ const createWindow = () => {
   enable(mainWindow.webContents);
   let menu = Menu.buildFromTemplate(menuTemplate)
   Menu.setApplicationMenu(menu)
-
+  //点击设置
   ipcMain.on('open-setting-window', () => {
     const settingWindowConfig = {
       width: 500,
@@ -49,7 +49,7 @@ const createWindow = () => {
     })
     enable(settingsWindow.webContents);
   })
-
+  //
   ipcMain.on('config-is-saved', () => {
     let qiniuMenu = process.platform === 'darwin' ? menu.items[3] : menu.items[2]
     const switchItems = (toggle) => {
@@ -97,6 +97,24 @@ const createWindow = () => {
       if (err.statusCode === 612) {
         mainWindow.webContents.send('file-download', { status: 'no-file', id })
       }
+    })
+  })
+
+  ipcMain.on('delete-file', (event, data) => {
+    const manager = createManager()
+    manager.deleteFile(data.key).then(res => {
+      console.log('delete-success');
+    }).catch(err => {
+      dialog.showErrorBox('云端删除失败', '请检查SDK设置是否正确')
+    })
+  })
+
+  ipcMain.on('rename-file', (event, data) => {
+    const manager = createManager()
+    manager.renameFile(data.key, data.newKey).then(res => {
+      console.log('rename-success');
+    }).catch(err => {
+      dialog.showErrorBox('云端重命名失败', '请检查SDK设置是否正确')
     })
   })
 

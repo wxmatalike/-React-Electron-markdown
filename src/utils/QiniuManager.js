@@ -67,7 +67,13 @@ class QiniuManager {
             return new Promise.reject({ err: err.response })
         })
     }
-    //
+    renameFile(key, newKey) {
+        const options = { force: true }
+        return new Promise((resolve, reject) => {
+            this.bucketManager.move(this.bucket, key, this.bucket, newKey, options, this._handleCallback(resolve, reject));
+        })
+    }
+    //获取云端文件的基本信息，主要用于比对上传时间
     getStat(key) {
         return new Promise((resolve, reject) => {
             this.bucketManager.stat(this.bucket, key, this._handleCallback(resolve, reject))
@@ -83,7 +89,7 @@ class QiniuManager {
     }
 
     //返回值抽离处理
-    _handleCallback(resolve, reject) {  
+    _handleCallback(resolve, reject) {
         return (respErr, respBody, respInfo) => {
             if (respErr) {
                 throw respErr;
