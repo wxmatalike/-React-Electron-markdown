@@ -258,6 +258,10 @@ function App() {
     saveFilesToStore(newFiles)
   }
 
+  const filesDownloaded = () => {
+    setFiles(fileStore.get('files'))
+  }
+
   useIpcRenderer({
     'create-file': createNewFile,
     'save-file': saveCurrentFile,
@@ -267,7 +271,8 @@ function App() {
     'loading-status': (message, status) => {
       setLoading(status)
     },
-    'files-uploaded-success': filesUploaded
+    'files-uploaded-success': filesUploaded,
+    'files-download-success': filesDownloaded
   })
 
   return (

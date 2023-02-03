@@ -60,17 +60,25 @@ class QiniuManager {
             const writer = fs.createWriteStream(downloadPath)
             res.data.pipe(writer)
             return new Promise((resolve, reject) => {
-                writer.on('finish', resolve)
+                writer.on('finish', resolve({ key: key.substr(0, key.length - 3), downloadPath }))
                 writer.on('error', reject)
             })
         }).catch(err => {
             return new Promise.reject({ err: err.response })
         })
     }
+    //重命名文件
     renameFile(key, newKey) {
         const options = { force: true }
         return new Promise((resolve, reject) => {
             this.bucketManager.move(this.bucket, key, this.bucket, newKey, options, this._handleCallback(resolve, reject));
+        })
+    }
+    //获取文件列表，用于全部下载至本地
+    getFileList() {
+        const options = {}
+        return new Promise((resolve, reject) => {
+            this.bucketManager.listPrefix(this.bucket, options, this._handleCallback(resolve, reject));
         })
     }
     //获取云端文件的基本信息，主要用于比对上传时间

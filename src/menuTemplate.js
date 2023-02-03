@@ -96,13 +96,14 @@ const template = [
                 label: '全部同步至云端',
                 enabled: qiniuIsConfig,
                 click: () => {
-                    ipcMain.emit(('upload-all-to-qiniu'))
+                    ipcMain.emit('upload-all-to-qiniu')
                 }
             },
             {
                 label: '从云端下载至本地',
                 enabled: qiniuIsConfig,
                 click: () => {
+                    ipcMain.emit('download-all-to-local')
                 }
             },
         ]
